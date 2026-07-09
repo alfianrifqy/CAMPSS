@@ -1,8 +1,10 @@
 from ninja import Router, Schema
+from ninja.pagination import paginate
 from ninja.errors import HttpError
 from typing import List
 from django.utils import timezone
 from api.security import auth_bearer
+from api.throttling import rate_limit
 
 from apps.tickets.models import Ticket
 from apps.reservations.models import Reservation
@@ -19,6 +21,8 @@ class TicketSchema(Schema):
     reservation_id: str
 
 @router.get("/", response=List[TicketSchema], auth=auth_bearer)
+@rate_limit(max_requests=20, window=60) # Maksimal 20 request per menit
+@paginate
 def list_tickets(request):
     user = request.auth
     if user.profile.role in ["ADMIN", "SUPER_ADMIN", "OFFICER"]:
@@ -50,6 +54,7 @@ def generate_ticket_for_reservation(reservation):
     return ticket
 
 @router.post("/generate/{reservation_id}", response=TicketSchema, auth=auth_bearer)
+@rate_limit(max_requests=5, window=60) # Maksimal 5 request per menit untuk generate
 def generate_ticket(request, reservation_id: str):
     user = request.auth
     try:
