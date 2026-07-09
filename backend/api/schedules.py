@@ -27,6 +27,7 @@ def list_schedules(
     request,
     status: str = None,
     weather: str = None,
+    month: str = None,
 ):
     schedules = Schedule.objects.all()
 
@@ -37,6 +38,14 @@ def list_schedules(
         schedules = schedules.filter(
             weather_status__icontains=weather
         )
+
+    if month:
+        # Expected month format: YYYY-MM
+        try:
+            year, m = month.split('-')
+            schedules = schedules.filter(hiking_date__year=year, hiking_date__month=m)
+        except ValueError:
+            pass
 
     return schedules
 

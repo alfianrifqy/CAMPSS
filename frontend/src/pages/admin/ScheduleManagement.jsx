@@ -60,11 +60,10 @@ const AdminScheduleManagement = () => {
     const fetchSchedules = async () => {
         setIsLoading(true);
         try {
-            // Note: In a real app we might want to filter by month, but right now api gets all
-            // Or we could pass query params, but currently backend /api/schedules just paginates.
-            // Let's assume it gets the first page of 100 items for simplicity
-            const response = await api.get('/schedules?limit=100');
-            setSchedules(response.data.items);
+            // For a calendar view, we should ideally filter by month.
+            // For now, we fetch a large limit so the calendar can populate correctly.
+            const response = await api.get('/schedules?limit=1000');
+            setSchedules(response.data.items || response.data);
         } catch (error) {
             console.error("Failed to fetch schedules:", error);
         } finally {

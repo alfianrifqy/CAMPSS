@@ -4,6 +4,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { usePopup } from '../../context/PopupContext';
 import api from '../../services/api';
+import Pagination from '../../components/Pagination';
 
 const AdminReservationManagement = () => {
     const [reservations, setReservations] = useState([]);
@@ -13,16 +14,37 @@ const AdminReservationManagement = () => {
     // Filters
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    
+    // Pagination
+    const [limit, setLimit] = useState(10);
+    const [offset, setOffset] = useState(0);
+    const [totalCount, setTotalCount] = useState(0);
+
+    // Reset offset when filters change
+    useEffect(() => {
+        setOffset(0);
+    }, [searchQuery, statusFilter, limit]);
 
     useEffect(() => {
-        fetchReservations();
-    }, []);
+        const timeoutId = setTimeout(() => {
+            fetchReservations();
+        }, 300);
+        return () => clearTimeout(timeoutId);
+    }, [offset, limit, searchQuery, statusFilter]);
 
     const fetchReservations = async () => {
         setIsLoading(true);
         try {
-            const response = await api.get('/reservations/');
-            setReservations(response.data);
+            const params = new URLSearchParams({
+                limit,
+                offset
+            });
+            if (searchQuery) params.append('search', searchQuery);
+            if (statusFilter) params.append('status', statusFilter);
+
+            const response = await api.get(`/reservations/?${params.toString()}`);
+            setReservations(response.data.items || response.data);
+            setTotalCount(response.data.count || (response.data.items ? response.data.items.length : response.data.length));
         } catch (error) {
             console.error("Failed to fetch reservations:", error);
         } finally {
@@ -47,12 +69,8 @@ const AdminReservationManagement = () => {
         );
     };
 
-    const filteredReservations = reservations.filter(res => {
-        const matchesSearch = res.booking_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                              res.leader_name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesStatus = statusFilter ? res.status === statusFilter : true;
-        return matchesSearch && matchesStatus;
-    });
+    // We no longer filter on the frontend since it's done on the server
+    const filteredReservations = reservations;
 
     const getStatusStyle = (status) => {
         switch (status) {
@@ -256,13 +274,12 @@ const AdminReservationManagement = () => {
                         </tbody>
                     </table>
                 </div>
-                
-                {/* Pagination */}
-                <div className="p-4 border-t border-border flex items-center justify-between">
-                    <span className="text-xs font-semibold text-on-surface-variant">
-                        Showing {filteredReservations.length} entries
-                    </span>
-                </div>
+                <Pagination 
+                    totalCount={totalCount}
+                    limit={limit}
+                    offset={offset}
+                    onPageChange={setOffset}
+                />
             </div>
         </div>
     );

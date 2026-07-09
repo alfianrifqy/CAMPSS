@@ -2,43 +2,51 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import api from '../../services/api';
+import Pagination from '../../components/Pagination';
 
 const SchedulePage = () => {
     const [schedules, setSchedules] = useState([]);
     const [filterStatus, setFilterStatus] = useState('All Status');
     const [filterMonth, setFilterMonth] = useState('');
+    
+    // Pagination
+    const [limit, setLimit] = useState(12); // Show 12 cards per page (3x4 grid)
+    const [offset, setOffset] = useState(0);
+    const [totalCount, setTotalCount] = useState(0);
+
+    // Reset offset when filters change
+    useEffect(() => {
+        setOffset(0);
+    }, [filterStatus, filterMonth, limit]);
 
     useEffect(() => {
-        const fetchSchedules = async () => {
-            try {
-                const response = await api.get('/schedules/');
-                // Assuming response is paginated (items)
-                setSchedules(response.data.items || response.data);
-            } catch (error) {
-                console.error("Failed to load schedules", error);
-            }
-        };
         fetchSchedules();
-    }, []);
+    }, [offset, limit, filterStatus, filterMonth]);
 
-    // Filter Logic
-    const filteredSchedules = schedules.filter(schedule => {
-        let match = true;
-        
-        // Filter by Status
-        if (filterStatus !== 'All Status') {
-            if (filterStatus === 'Open' && schedule.status !== 'OPEN') match = false;
-            if (filterStatus === 'Full' && schedule.status !== 'FULL') match = false;
+    const fetchSchedules = async () => {
+        try {
+            const params = new URLSearchParams({
+                limit,
+                offset
+            });
+            
+            if (filterStatus !== 'All Status') {
+                params.append('status', filterStatus.toUpperCase());
+            }
+            if (filterMonth) {
+                params.append('month', filterMonth);
+            }
+
+            const response = await api.get(`/schedules/?${params.toString()}`);
+            setSchedules(response.data.items || response.data);
+            setTotalCount(response.data.count || (response.data.items ? response.data.items.length : response.data.length));
+        } catch (error) {
+            console.error("Failed to load schedules", error);
         }
-        
-        // Filter by Month (e.g., '2026-07')
-        if (filterMonth) {
-            const hikeMonth = schedule.hiking_date.substring(0, 7);
-            if (hikeMonth !== filterMonth) match = false;
-        }
-        
-        return match;
-    });
+    };
+
+    // Client-side filtering is no longer needed since it's done via API parameters
+    const filteredSchedules = schedules;
 
     return (
         <div className="flex flex-col gap-10">
@@ -143,6 +151,13 @@ const SchedulePage = () => {
                 )}
 
             </section>
+            
+            <Pagination 
+                totalCount={totalCount}
+                limit={limit}
+                offset={offset}
+                onPageChange={setOffset}
+            />
         </div>
     );
 };

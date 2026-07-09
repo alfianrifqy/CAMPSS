@@ -5,6 +5,7 @@ from django.db import transaction
 
 from ninja import Router, Schema
 from ninja.errors import HttpError
+from ninja.pagination import paginate
 
 from typing import List, Optional
 
@@ -174,8 +175,11 @@ class ReservationDetailSchema(ReservationSchema):
     members: List[ReservationMemberResponseSchema]
     ticket: Optional[TicketBasicSchema] = None
 
+from django.db.models import Q
+
 @router.get("/", response=List[ReservationSchema], auth=auth_bearer)
-def list_reservations(request):
+@paginate
+def list_reservations(request, search: str = None, status: str = None):
     user = request.auth
     
     # If admin, return all. Else return user's reservations.
@@ -183,6 +187,13 @@ def list_reservations(request):
         reservations = Reservation.objects.all()
     else:
         reservations = Reservation.objects.filter(user=user)
+
+    if status:
+        reservations = reservations.filter(status=status)
+    if search:
+        reservations = reservations.filter(
+            Q(booking_code__icontains=search) | Q(leader_name__icontains=search)
+        )
         
     return reservations
 
