@@ -142,9 +142,9 @@ const TicketPage = () => {
                             </div>
                         )}
                         
-                        {reservation.ticket?.qr_code_url ? (
+                        {reservation.ticket?.ticket_number ? (
                             <img 
-                                src={`${import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://127.0.0.1:8000'}${reservation.ticket.qr_code_url}`} 
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${reservation.ticket.ticket_number}`} 
                                 alt="Ticket QR Code" 
                                 className={`w-48 h-48 object-contain ${reservation.checkin_status === 'CHECKED OUT' ? 'opacity-30 grayscale' : ''}`}
                             />
