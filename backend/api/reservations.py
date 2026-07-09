@@ -10,6 +10,7 @@ from ninja.pagination import paginate
 from typing import List, Optional
 
 from api.security import auth_bearer
+from api.throttling import rate_limit
 
 from apps.schedules.models import Schedule
 from apps.reservations.models import Reservation, ReservationMember
@@ -178,6 +179,7 @@ class ReservationDetailSchema(ReservationSchema):
 from django.db.models import Q
 
 @router.get("/", response=List[ReservationSchema], auth=auth_bearer)
+@rate_limit(max_requests=5, window=60)
 @paginate
 def list_reservations(request, search: str = None, status: str = None):
     user = request.auth
