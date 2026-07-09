@@ -11,7 +11,7 @@ const MyHikesPage = () => {
         const fetchReservations = async () => {
             try {
                 const response = await api.get('/reservations/');
-                setReservations(response.data);
+                setReservations(response.data.items || response.data);
             } catch (error) {
                 console.error("Failed to fetch reservations", error);
             } finally {
