@@ -144,7 +144,7 @@ const TicketPage = () => {
                         
                         {reservation.ticket?.qr_code_url ? (
                             <img 
-                                src={`http://127.0.0.1:8000${reservation.ticket.qr_code_url}`} 
+                                src={`${import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://127.0.0.1:8000'}${reservation.ticket.qr_code_url}`} 
                                 alt="Ticket QR Code" 
                                 className={`w-48 h-48 object-contain ${reservation.checkin_status === 'CHECKED OUT' ? 'opacity-30 grayscale' : ''}`}
                             />
