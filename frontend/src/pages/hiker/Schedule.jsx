@@ -5,6 +5,8 @@ import api from '../../services/api';
 
 const SchedulePage = () => {
     const [schedules, setSchedules] = useState([]);
+    const [filterStatus, setFilterStatus] = useState('All Status');
+    const [filterMonth, setFilterMonth] = useState('');
 
     useEffect(() => {
         const fetchSchedules = async () => {
@@ -19,6 +21,25 @@ const SchedulePage = () => {
         fetchSchedules();
     }, []);
 
+    // Filter Logic
+    const filteredSchedules = schedules.filter(schedule => {
+        let match = true;
+        
+        // Filter by Status
+        if (filterStatus !== 'All Status') {
+            if (filterStatus === 'Open' && schedule.status !== 'OPEN') match = false;
+            if (filterStatus === 'Full' && schedule.status !== 'FULL') match = false;
+        }
+        
+        // Filter by Month (e.g., '2026-07')
+        if (filterMonth) {
+            const hikeMonth = schedule.hiking_date.substring(0, 7);
+            if (hikeMonth !== filterMonth) match = false;
+        }
+        
+        return match;
+    });
+
     return (
         <div className="flex flex-col gap-10">
             {/* Header & Filters */}
@@ -31,26 +52,36 @@ const SchedulePage = () => {
                 {/* Filter Bar */}
                 <div className="bg-surface/80 backdrop-blur-md p-6 rounded-2xl flex flex-col md:flex-row gap-4 items-end md:items-center shadow-sm border border-border">
                     <div className="flex flex-col w-full md:w-auto gap-1">
-                        <label className="text-xs font-bold text-on-surface-variant">Select Date Range</label>
+                        <label className="text-xs font-bold text-on-surface-variant">Select Month</label>
                         <div className="relative">
                             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant">calendar_month</span>
-                            <input className="w-full md:w-64 h-12 pl-10 pr-4 rounded-xl border border-border focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm font-medium text-on-surface bg-surface" placeholder="Upcoming Month" type="text" />
+                            <input 
+                                className="w-full md:w-48 h-12 pl-10 pr-4 rounded-xl border border-border focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm font-medium text-on-surface bg-surface" 
+                                type="month" 
+                                value={filterMonth}
+                                onChange={(e) => setFilterMonth(e.target.value)}
+                            />
                         </div>
                     </div>
                     <div className="flex flex-col w-full md:w-auto gap-1">
                         <label className="text-xs font-bold text-on-surface-variant">Availability</label>
                         <div className="relative">
                             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant">filter_list</span>
-                            <select className="w-full md:w-48 h-12 pl-10 pr-8 rounded-xl border border-border focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm font-medium text-on-surface bg-surface appearance-none">
+                            <select 
+                                className="w-full md:w-48 h-12 pl-10 pr-8 rounded-xl border border-border focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm font-medium text-on-surface bg-surface appearance-none"
+                                value={filterStatus}
+                                onChange={(e) => setFilterStatus(e.target.value)}
+                            >
                                 <option>All Status</option>
                                 <option>Open</option>
-                                <option>Filling Fast</option>
+                                <option>Full</option>
                             </select>
                         </div>
                     </div>
-                    <button className="w-full md:w-auto h-12 px-6 bg-primary text-white rounded-xl text-sm font-bold hover:shadow-md hover:bg-primary/90 transition-all ml-auto flex items-center justify-center gap-2">
-                        <span className="material-symbols-outlined text-[20px]">search</span>
-                        Find Schedule
+                    {/* The search is now reactive, no need for button logic, but we keep it for aesthetics */}
+                    <button className="w-full md:w-auto h-12 px-6 bg-primary text-white rounded-xl text-sm font-bold shadow-sm opacity-50 cursor-not-allowed ml-auto flex items-center justify-center gap-2" disabled>
+                        <span className="material-symbols-outlined text-[20px]">check_circle</span>
+                        Live Filter Active
                     </button>
                 </div>
             </section>
@@ -58,7 +89,7 @@ const SchedulePage = () => {
             {/* Schedule Grid */}
             <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 
-                {schedules.map((schedule) => (
+                {filteredSchedules.length > 0 ? filteredSchedules.map((schedule) => (
                     <article key={schedule.id} className="bg-surface rounded-2xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col gap-3 border border-border hover:border-primary group">
                         <div className="flex justify-between items-start">
                             <div className="flex flex-col">
@@ -92,12 +123,24 @@ const SchedulePage = () => {
                                 <span className="text-xs font-bold text-text-secondary">Starting from</span>
                                 <span className="text-2xl font-bold text-primary">Rp {schedule.price}</span>
                             </div>
-                            <Link to={`/hiker/reservation/new?scheduleId=${schedule.id}`} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl text-sm font-bold transition-colors shadow-sm">
-                                Reserve Now
-                            </Link>
+                            {schedule.status === 'OPEN' ? (
+                                <Link to={`/hiker/reservation/new?scheduleId=${schedule.id}`} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl text-sm font-bold transition-colors shadow-sm">
+                                    Reserve Now
+                                </Link>
+                            ) : (
+                                <button disabled className="bg-surface-variant text-text-secondary px-6 py-3 rounded-xl text-sm font-bold cursor-not-allowed">
+                                    Full
+                                </button>
+                            )}
                         </div>
                     </article>
-                ))}
+                )) : (
+                    <div className="col-span-full flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-border rounded-2xl">
+                        <span className="material-symbols-outlined text-6xl text-outline-variant mb-4">search_off</span>
+                        <h3 className="text-xl font-bold text-on-surface">No schedules found</h3>
+                        <p className="text-text-secondary mt-2">Try adjusting your filters to find available dates.</p>
+                    </div>
+                )}
 
             </section>
         </div>
